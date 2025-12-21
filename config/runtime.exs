@@ -38,7 +38,7 @@ end
 # Configure default model for agent suggestions
 config :debaite, :default_suggester_model,
   provider: System.get_env("SUGGESTER_PROVIDER") || "anthropic",
-  model: System.get_env("SUGGESTER_MODEL") || "claude-3-5-sonnet-20241022"
+  model: System.get_env("SUGGESTER_MODEL") || "claude-haiku-4-5-20251001"
 
 if config_env() == :prod do
   database_url =

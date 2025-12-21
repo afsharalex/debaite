@@ -122,7 +122,7 @@ defmodule DebaiteWeb.ChatroomLive do
       </div>
 
       <div class="bg-white shadow rounded-lg mb-4 p-4">
-        <h2 class="text-lg font-semibold mb-2">Participants</h2>
+        <h2 class="text-lg font-semibold mb-2 text-black">Participants</h2>
         <div class="flex flex-wrap gap-2">
           <%= for agent <- @chatroom.agents do %>
             <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
@@ -145,7 +145,7 @@ defmodule DebaiteWeb.ChatroomLive do
           <%= for message <- @messages do %>
             <div class={"border-l-4 p-4 mb-3 rounded " <> message_class(message)}>
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-bold text-sm">
+                <span class="font-bold text-sm text-gray-900">
                   <%= get_sender_name(message, @agents_map) %>
                 </span>
                 <span class="text-xs text-gray-500">

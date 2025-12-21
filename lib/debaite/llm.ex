@@ -10,7 +10,7 @@ defmodule Debaite.LLM do
 
   ## Parameters
     - provider: The LLM provider (e.g., "anthropic", "openai")
-    - model: The model name (e.g., "claude-3-5-sonnet-20241022", "gpt-4")
+    - model: The model name (e.g., "claude-4-5-sonnet-20241022", "gpt-4")
     - messages: List of message maps with role and content
     - opts: Additional options (optional)
 
@@ -24,7 +24,13 @@ defmodule Debaite.LLM do
     try do
       case ReqLLM.generate_text(model_spec, messages, opts) do
         {:ok, response} ->
-          {:ok, response}
+          # Extract the text content from the response message
+          # response.message.content is a list of ContentPart structs
+          text =
+            response.message.content
+            |> Enum.map(fn part -> part.text end)
+            |> Enum.join("")
+          {:ok, text}
 
         {:error, reason} = error ->
           Logger.error("LLM generation failed: #{inspect(reason)}")
@@ -53,6 +59,7 @@ defmodule Debaite.LLM do
       %{role: "system", content: system_prompt},
       %{role: "user", content: user_prompt}
     ]
+
     generate_text(provider, model, messages, opts)
   end
 
@@ -68,6 +75,7 @@ defmodule Debaite.LLM do
       | Enum.map(message_history, fn msg ->
           # Format each historical message
           role = if msg.sender_type == "user", do: "user", else: "assistant"
+
           content =
             if msg.sender_type == "agent" do
               # For agent messages, prefix with agent name for context
@@ -82,7 +90,9 @@ defmodule Debaite.LLM do
     ]
 
     # Add a final user message to prompt the agent to respond
-    messages = messages ++ [%{role: "user", content: "Please provide your response to continue the debate."}]
+    messages =
+      messages ++
+        [%{role: "user", content: "Please provide your response to continue the debate. IMPORTANT: Do not prefix your message with your name or [Your Name]: - the UI already shows who you are. Just write your message content directly."}]
 
     generate_text(agent.provider, agent.model, messages)
   end
@@ -102,8 +112,16 @@ defmodule Debaite.LLM do
   """
   def default_models do
     [
-      %{provider: "anthropic", model: "claude-3-5-sonnet-20241022", display_name: "Claude 3.5 Sonnet"},
-      %{provider: "anthropic", model: "claude-3-5-haiku-20241022", display_name: "Claude 3.5 Haiku"},
+      %{
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        display_name: "Claude 4.5 Sonnet"
+      },
+      %{
+        provider: "anthropic",
+        model: "claude-haiku-4-5-20251001",
+        display_name: "Claude 4.5 Haiku"
+      },
       %{provider: "openai", model: "gpt-4o", display_name: "GPT-4o"},
       %{provider: "openai", model: "gpt-4o-mini", display_name: "GPT-4o Mini"},
       %{provider: "openai", model: "gpt-4-turbo", display_name: "GPT-4 Turbo"}

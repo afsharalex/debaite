@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: debaite_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: debaite_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - debaite_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: debaite_web
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - MIX_ENV=dev
+      - PHX_SERVER=true
+      - PHX_HOST=localhost
+      - PORT=4000
+      - DATABASE_HOST=db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=debaite_dev
+      # LLM API keys (will be overridden by .env file)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUGGESTER_PROVIDER=${SUGGESTER_PROVIDER:-anthropic}
+      - SUGGESTER_MODEL=${SUGGESTER_MODEL:-claude-haiku-4-5-20251001}
+    volumes:
+      # Mount source code for hot-reloading
+      - .:/app
+      # Use named volumes for build artifacts and dependencies
+      - build_data:/app/_build
+      - deps_data:/app/deps
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    networks:
+      - debaite_network
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  build_data:
+  deps_data:
+
+networks:
+  debaite_network:
+    driver: bridge

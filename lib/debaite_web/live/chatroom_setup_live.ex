@@ -66,7 +66,7 @@ defmodule DebaiteWeb.ChatroomSetupLive do
       perspective: "Custom perspective",
       system_prompt: "You are a debate participant...",
       provider: "anthropic",
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-sonnet-4-5-20250929",
       position: length(agents)
     }
 
@@ -92,11 +92,12 @@ defmodule DebaiteWeb.ChatroomSetupLive do
           })
         end)
 
+        # Update status to active BEFORE starting the server
+        # so the server initializes with the correct status
+        {:ok, chatroom} = Chatrooms.update_status(chatroom, "active")
+
         # Start the chatroom server
         {:ok, _pid} = ChatroomSupervisor.start_chatroom(chatroom.id)
-
-        # Update status to active
-        Chatrooms.update_status(chatroom, "active")
 
         # Redirect to chatroom
         {:noreply, push_navigate(socket, to: ~p"/chatrooms/#{chatroom.id}")}
@@ -132,7 +133,7 @@ defmodule DebaiteWeb.ChatroomSetupLive do
 
       <%= if @error do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <%= @error %>
+          {@error}
         </div>
       <% end %>
 
@@ -158,7 +159,7 @@ defmodule DebaiteWeb.ChatroomSetupLive do
                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 disabled={@loading}
               >
-                <%= if @loading, do: "Generating...", else: "Generate Agent Suggestions" %>
+                {if @loading, do: "Generating...", else: "Generate Agent Suggestions"}
               </button>
             </div>
           </form>
@@ -188,7 +189,7 @@ defmodule DebaiteWeb.ChatroomSetupLive do
                 </div>
                 <div>
                   <label class="block text-gray-700 text-sm font-bold mb-2">Perspective</label>
-                  <p class="text-gray-600 text-sm"><%= agent[:perspective] || "No perspective" %></p>
+                  <p class="text-gray-600 text-sm">{agent[:perspective] || "No perspective"}</p>
                 </div>
                 <div class="md:col-span-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">System Prompt</label>

@@ -19,14 +19,69 @@ Debaite allows users to create dynamic chatrooms where AI agents debate topics f
 
 ## Installation
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
 
+The easiest way to run Debaite locally is using Docker Compose:
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+- API key for at least one LLM provider (Anthropic or OpenAI)
+
+**Steps:**
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd debaite
+```
+
+2. Create environment file from example:
+```bash
+cp .env.docker.example .env
+```
+
+3. Edit `.env` and add your LLM API keys:
+```bash
+ANTHROPIC_API_KEY=your_anthropic_key_here
+OPENAI_API_KEY=your_openai_key_here
+```
+
+4. Start the application:
+```bash
+docker compose up -d
+```
+
+5. Visit `http://localhost:4000` in your browser
+
+The application will automatically:
+- Start PostgreSQL database
+- Run database migrations
+- Install dependencies
+- Start the Phoenix server
+
+**Useful Docker commands:**
+```bash
+# View logs
+docker compose logs -f web
+
+# Stop containers
+docker compose down
+
+# Rebuild after code changes
+docker compose build && docker compose up -d
+
+# Access the app shell
+docker compose exec web iex -S mix
+```
+
+### Manual Setup (Without Docker)
+
+**Prerequisites:**
 - Elixir 1.15 or later
 - PostgreSQL
-- Node.js (for asset compilation)
 - API key for at least one LLM provider (Anthropic or OpenAI recommended)
 
-### Setup
+**Setup:**
 
 1. Clone the repository and install dependencies:
 ```bash
