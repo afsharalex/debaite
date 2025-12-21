@@ -179,6 +179,5 @@ iex> Registry.lookup(Debaite.ChatroomRegistry, chatroom_id)
 
 Refer to:
 - [README.md](README.md) for project overview
-- [CLAUDE.md](CLAUDE.md) for AI assistant development guide
 - [Phoenix Framework Docs](https://hexdocs.pm/phoenix)
 - [req_llm Documentation](https://hexdocs.pm/req_llm)
