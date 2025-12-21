@@ -129,7 +129,7 @@ defmodule DebaiteWeb.ChatroomSetupLive do
   def render(assigns) do
     ~H"""
     <div class="max-w-6xl mx-auto px-4 py-8">
-      <h1 class="text-4xl font-bold mb-8">Create a Debate Chatroom</h1>
+      <h1 class="text-4xl font-bold mb-8 text-center">Create a Debate Chatroom</h1>
 
       <%= if @error do %>
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
