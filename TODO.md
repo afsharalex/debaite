@@ -345,7 +345,6 @@ When working on this project:
 ## 📚 References
 
 - [README.md](README.md) - Project overview
-- [CLAUDE.md](CLAUDE.md) - AI development guide
 - [GETTING_STARTED.md](GETTING_STARTED.md) - Setup instructions
 - [req_llm docs](https://hexdocs.pm/req_llm) - LLM integration library
 - [Phoenix docs](https://hexdocs.pm/phoenix) - Web framework
