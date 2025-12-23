@@ -141,4 +141,16 @@ defmodule Debaite.Chatrooms do
       {:status_change, status}
     )
   end
+
+  @doc """
+  Broadcasts typing status to all subscribers of a chatroom.
+  agent_name can be nil to clear the typing indicator.
+  """
+  def broadcast_typing(chatroom_id, agent_name) do
+    Phoenix.PubSub.broadcast(
+      Debaite.PubSub,
+      "chatroom:#{chatroom_id}",
+      {:typing, agent_name}
+    )
+  end
 end

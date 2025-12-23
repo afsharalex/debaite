@@ -144,6 +144,9 @@ defmodule Debaite.Chatrooms.ChatroomServer do
     if agent do
       Logger.info("Agent #{agent.name} is taking their turn in chatroom #{state.chatroom_id}")
 
+      # Broadcast typing indicator
+      Chatrooms.broadcast_typing(state.chatroom_id, agent.name)
+
       # Get message history
       message_history = Chatrooms.list_messages_by_chatroom(state.chatroom_id)
 
@@ -159,6 +162,9 @@ defmodule Debaite.Chatrooms.ChatroomServer do
               chatroom_id: state.chatroom_id
             })
 
+          # Clear typing indicator
+          Chatrooms.broadcast_typing(state.chatroom_id, nil)
+
           # Broadcast the message
           Chatrooms.broadcast_message(state.chatroom_id, message)
 
@@ -170,6 +176,8 @@ defmodule Debaite.Chatrooms.ChatroomServer do
 
         {:error, reason} ->
           Logger.error("Failed to generate agent response: #{inspect(reason)}")
+          # Clear typing indicator on error
+          Chatrooms.broadcast_typing(state.chatroom_id, nil)
           state
       end
     else

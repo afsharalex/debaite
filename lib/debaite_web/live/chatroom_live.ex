@@ -20,6 +20,7 @@ defmodule DebaiteWeb.ChatroomLive do
      |> assign(:chatroom, chatroom)
      |> assign(:messages, messages)
      |> assign(:message_input, "")
+     |> assign(:typing_agent, nil)
      |> assign(:agents_map, build_agents_map(chatroom.agents))}
   end
 
@@ -60,6 +61,11 @@ defmodule DebaiteWeb.ChatroomLive do
   def handle_info({:status_change, new_status}, socket) do
     chatroom = %{socket.assigns.chatroom | status: new_status}
     {:noreply, assign(socket, :chatroom, chatroom)}
+  end
+
+  @impl true
+  def handle_info({:typing, agent_name}, socket) do
+    {:noreply, assign(socket, :typing_agent, agent_name)}
   end
 
   defp build_agents_map(agents) do
@@ -155,6 +161,16 @@ defmodule DebaiteWeb.ChatroomLive do
               <p class="text-gray-800 whitespace-pre-wrap"><%= message.content %></p>
             </div>
           <% end %>
+        <% end %>
+        <%= if @typing_agent do %>
+          <div class="border-l-4 border-gray-300 bg-gray-50 p-4 mb-3 rounded animate-pulse">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-gray-700">
+                <%= @typing_agent %>
+              </span>
+              <span class="text-sm text-gray-600">is writing...</span>
+            </div>
+          </div>
         <% end %>
       </div>
 
