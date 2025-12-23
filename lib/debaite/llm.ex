@@ -5,6 +5,21 @@ defmodule Debaite.LLM do
 
   require Logger
 
+  # Hardcoded formatting instructions that are always appended to agent system prompts
+  # These are not user-editable and ensure consistent chat-style responses
+  @formatting_instructions """
+
+  FORMATTING REQUIREMENTS (DO NOT IGNORE):
+  You are participating in a real-time chat debate. Your messages MUST follow these rules:
+  - Keep responses conversational and concise (2-4 short paragraphs maximum)
+  - Avoid heavy markdown formatting (no headers like ##, minimal bullet points)
+  - Write naturally as if speaking in a live discussion, not writing an essay
+  - Engage directly with other participants' points
+  - Sound like you're chatting, not writing a formal document
+  - NEVER prefix your messages with your own name (e.g., "[Name]:" or "Name:") - the UI already shows who is speaking
+  - Do not use formal salutations or sign-offs
+  """
+
   @doc """
   Generates text using the specified model and prompt.
 
@@ -67,11 +82,15 @@ defmodule Debaite.LLM do
   Generates text for an agent in a chatroom context.
 
   Takes the agent's system prompt and full message history.
+  The formatting instructions are automatically appended to ensure consistent chat-style responses.
   """
   def generate_agent_response(agent, message_history) do
+    # Combine the agent's custom system prompt with hardcoded formatting instructions
+    full_system_prompt = agent.system_prompt <> @formatting_instructions
+
     # Build messages array with system prompt and history
     messages = [
-      %{role: "system", content: agent.system_prompt}
+      %{role: "system", content: full_system_prompt}
       | Enum.map(message_history, fn msg ->
           # Format each historical message
           role = if msg.sender_type == "user", do: "user", else: "assistant"
@@ -92,7 +111,7 @@ defmodule Debaite.LLM do
     # Add a final user message to prompt the agent to respond
     messages =
       messages ++
-        [%{role: "user", content: "Please provide your response to continue the debate. IMPORTANT: Do not prefix your message with your name or [Your Name]: - the UI already shows who you are. Just write your message content directly."}]
+        [%{role: "user", content: "Please provide your response to continue the debate."}]
 
     generate_text(agent.provider, agent.model, messages)
   end

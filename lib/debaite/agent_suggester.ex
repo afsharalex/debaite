@@ -34,16 +34,7 @@ defmodule Debaite.AgentSuggester do
   - Consider expertise, debate style, and argumentative approach
   - Recommend appropriate models (use claude-sonnet-4-5-20250929 for complex reasoning, gpt-4o for balanced performance, claude-haiku-4-5-20251001 for faster responses)
   - Ensure the debate will be substantive and educational
-
-  IMPORTANT: Each agent's system prompt MUST include instructions that they are participating in a REAL-TIME CHAT DEBATE, not writing essays. Agents should:
-  - Keep responses conversational and concise (2-4 short paragraphs maximum)
-  - Avoid heavy markdown formatting (no headers like ##, minimal bullet points)
-  - Write naturally as if speaking in a live discussion
-  - Engage directly with other participants' points
-  - Sound like they're chatting, not writing a formal document
-  - NEVER prefix their messages with their own name (e.g., "[Name]:" or "Name:") - the UI already shows who is speaking
-
-  Example phrase to include in system prompts: "You are participating in a real-time chat debate. Keep your messages conversational, concise, and chat-appropriate - imagine you're speaking in a live discussion, not writing an essay. Do not prefix your messages with your name - just write your message content directly."
+  - Focus system prompts on the agent's perspective, expertise, and personality - not on message formatting
   """
 
   @doc """
