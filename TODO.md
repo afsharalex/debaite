@@ -78,6 +78,10 @@
 - [x] .env.example for API keys
 - [x] TODO.md (this file)
 
+#### Fixes
+- [x] Show 'X is writing...' message while the agents are sending the request to LLM
+- [x] The portion of the prompt that instructs how the message should be formatted should be separate, hardcoded, and possibly not allow the user to edit it - maybe don't even show it to them.
+- [x] Check all API Keys, only allow providers that have a key.
 ---
 
 ## 🚧 Current Work
