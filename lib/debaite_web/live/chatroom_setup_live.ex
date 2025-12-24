@@ -1,18 +1,23 @@
 defmodule DebaiteWeb.ChatroomSetupLive do
   use DebaiteWeb, :live_view
 
-  alias Debaite.{Chatrooms, AgentSuggester}
+  alias Debaite.{Chatrooms, AgentSuggester, ApiKeyChecker}
   alias Debaite.Chatrooms.ChatroomSupervisor
 
   @impl true
   def mount(_params, _session, socket) do
+    available_providers = ApiKeyChecker.available_providers()
+    provider_options = ApiKeyChecker.provider_options()
+
     {:ok,
      socket
      |> assign(:topic, "")
      |> assign(:suggested_agents, [])
      |> assign(:loading, false)
      |> assign(:error, nil)
-     |> assign(:step, :topic_input)}
+     |> assign(:step, :topic_input)
+     |> assign(:available_providers, available_providers)
+     |> assign(:provider_options, provider_options)}
   end
 
   @impl true
@@ -60,13 +65,18 @@ defmodule DebaiteWeb.ChatroomSetupLive do
   @impl true
   def handle_event("add_agent", _params, socket) do
     agents = socket.assigns.suggested_agents
+    available_providers = socket.assigns.available_providers
+
+    # Use first available provider as default
+    default_provider = List.first(available_providers) || "anthropic"
+    default_model = get_default_model_for_provider(default_provider)
 
     new_agent = %{
       name: "New Agent",
       perspective: "Custom perspective",
       system_prompt: "You are a debate participant...",
-      provider: "anthropic",
-      model: "claude-sonnet-4-5-20250929",
+      provider: default_provider,
+      model: default_model,
       position: length(agents)
     }
 
@@ -77,7 +87,33 @@ defmodule DebaiteWeb.ChatroomSetupLive do
   def handle_event("create_chatroom", _params, socket) do
     topic = socket.assigns.topic
     agents = socket.assigns.suggested_agents
+    available_providers = socket.assigns.available_providers
 
+    # Validate that all agents use available providers
+    case validate_agent_providers(agents, available_providers) do
+      :ok ->
+        create_and_start_chatroom(topic, agents, socket)
+
+      {:error, invalid_provider} ->
+        {:noreply,
+         assign(socket, :error, "Cannot create chatroom: provider '#{invalid_provider}' is not configured. Please check your API keys.")}
+    end
+  end
+
+  defp validate_agent_providers(agents, available_providers) do
+    invalid_agent =
+      Enum.find(agents, fn agent ->
+        agent.provider not in available_providers
+      end)
+
+    if invalid_agent do
+      {:error, invalid_agent.provider}
+    else
+      :ok
+    end
+  end
+
+  defp create_and_start_chatroom(topic, agents, socket) do
     case Chatrooms.create_chatroom(%{topic: topic, status: "setup"}) do
       {:ok, chatroom} ->
         # Create agents
@@ -125,6 +161,12 @@ defmodule DebaiteWeb.ChatroomSetupLive do
     end
   end
 
+  # Private helpers
+
+  defp get_default_model_for_provider("anthropic"), do: "claude-sonnet-4-5-20250929"
+  defp get_default_model_for_provider("openai"), do: "gpt-4o"
+  defp get_default_model_for_provider(_), do: "claude-sonnet-4-5-20250929"
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -138,32 +180,48 @@ defmodule DebaiteWeb.ChatroomSetupLive do
       <% end %>
 
       <%= if @step == :topic_input do %>
-        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <form phx-submit="suggest_agents">
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm font-bold mb-2" for="topic">
-                Debate Topic
-              </label>
-              <textarea
-                id="topic"
-                name="topic"
-                rows="3"
-                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Enter a topic for debate (e.g., 'Should artificial intelligence be regulated?')"
-                required
-              ><%= @topic %></textarea>
-            </div>
-            <div class="flex items-center justify-between">
-              <button
-                type="submit"
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                disabled={@loading}
-              >
-                {if @loading, do: "Generating...", else: "Generate Agent Suggestions"}
-              </button>
-            </div>
-          </form>
-        </div>
+        <%= if Enum.empty?(@available_providers) do %>
+          <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+            <p class="font-bold mb-2">No API Keys Configured</p>
+            <p class="mb-2">
+              Please configure at least one LLM provider API key to use this application.
+            </p>
+            <p class="text-sm">
+              Set one of the following environment variables:
+            </p>
+            <ul class="list-disc list-inside text-sm mt-2">
+              <li>ANTHROPIC_API_KEY (for Claude models)</li>
+              <li>OPENAI_API_KEY (for GPT models)</li>
+            </ul>
+          </div>
+        <% else %>
+          <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <form phx-submit="suggest_agents">
+              <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="topic">
+                  Debate Topic
+                </label>
+                <textarea
+                  id="topic"
+                  name="topic"
+                  rows="3"
+                  class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  placeholder="Enter a topic for debate (e.g., 'Should artificial intelligence be regulated?')"
+                  required
+                ><%= @topic %></textarea>
+              </div>
+              <div class="flex items-center justify-between">
+                <button
+                  type="submit"
+                  class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  disabled={@loading}
+                >
+                  {if @loading, do: "Generating...", else: "Generate Agent Suggestions"}
+                </button>
+              </div>
+            </form>
+          </div>
+        <% end %>
       <% end %>
 
       <%= if @step == :agent_editing do %>
@@ -209,10 +267,11 @@ defmodule DebaiteWeb.ChatroomSetupLive do
                     name="provider"
                     class="shadow border rounded w-full py-2 px-3 text-gray-700"
                   >
-                    <option value="anthropic" selected={agent.provider == "anthropic"}>
-                      Anthropic
-                    </option>
-                    <option value="openai" selected={agent.provider == "openai"}>OpenAI</option>
+                    <%= for option <- @provider_options do %>
+                      <option value={option.value} selected={agent.provider == option.value}>
+                        {option.label}
+                      </option>
+                    <% end %>
                   </select>
                 </div>
                 <div>

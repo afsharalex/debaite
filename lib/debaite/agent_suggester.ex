@@ -3,7 +3,7 @@ defmodule Debaite.AgentSuggester do
   Generates agent suggestions for debate topics using LLMs.
   """
 
-  alias Debaite.LLM
+  alias Debaite.{LLM, ApiKeyChecker}
   require Logger
 
   @system_prompt """
@@ -43,9 +43,24 @@ defmodule Debaite.AgentSuggester do
   Returns {:ok, agents} or {:error, reason}
   """
   def suggest_agents(topic) do
+    # Check which providers have API keys configured
+    available_providers = ApiKeyChecker.available_providers()
+
+    if Enum.empty?(available_providers) do
+      {:error, "No LLM API keys configured. Please set ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable."}
+    else
+      generate_suggestions(topic, available_providers)
+    end
+  end
+
+  defp generate_suggestions(topic, available_providers) do
     config = Application.get_env(:debaite, :default_suggester_model)
     provider = config[:provider]
     model = config[:model]
+
+    # Build system prompt with available providers
+    provider_constraint = build_provider_constraint(available_providers)
+    full_system_prompt = @system_prompt <> "\n\n" <> provider_constraint
 
     user_prompt = """
     Debate topic: #{topic}
@@ -53,12 +68,46 @@ defmodule Debaite.AgentSuggester do
     Please suggest AI agents for this debate. Remember to return valid JSON only.
     """
 
-    case LLM.generate_with_system(provider, model, @system_prompt, user_prompt) do
+    case LLM.generate_with_system(provider, model, full_system_prompt, user_prompt) do
       {:ok, response} ->
-        parse_agent_suggestions(response)
+        parse_and_filter_agents(response, available_providers)
 
       {:error, reason} = error ->
         Logger.error("Failed to generate agent suggestions: #{inspect(reason)}")
+        error
+    end
+  end
+
+  defp build_provider_constraint(available_providers) do
+    providers_list = Enum.join(available_providers, ", ")
+
+    """
+    IMPORTANT: You can ONLY use the following providers (others are not configured): #{providers_list}
+    Only suggest agents using these providers. Do not suggest any other providers.
+    """
+  end
+
+  defp parse_and_filter_agents(json_string, available_providers) do
+    case parse_agent_suggestions(json_string) do
+      {:ok, agents} ->
+        # Filter out any agents with unavailable providers
+        filtered_agents =
+          agents
+          |> Enum.filter(fn agent ->
+            agent.provider in available_providers
+          end)
+          |> Enum.with_index()
+          |> Enum.map(fn {agent, new_index} ->
+            %{agent | position: new_index}
+          end)
+
+        if Enum.empty?(filtered_agents) do
+          {:error, "No agents suggested with available providers"}
+        else
+          {:ok, filtered_agents}
+        end
+
+      error ->
         error
     end
   end
