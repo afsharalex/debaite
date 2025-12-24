@@ -21,6 +21,7 @@ defmodule DebaiteWeb.ChatroomLive do
      |> assign(:messages, messages)
      |> assign(:message_input, "")
      |> assign(:typing_agent, nil)
+     |> assign(:sending_message, false)
      |> assign(:agents_map, build_agents_map(chatroom.agents))}
   end
 
@@ -46,7 +47,7 @@ defmodule DebaiteWeb.ChatroomLive do
   def handle_event("send_message", %{"message" => content}, socket) do
     if String.trim(content) != "" do
       ChatroomServer.add_user_message(socket.assigns.chatroom.id, content)
-      {:noreply, assign(socket, :message_input, "")}
+      {:noreply, socket |> assign(:message_input, "") |> assign(:sending_message, true)}
     else
       {:noreply, socket}
     end
@@ -54,7 +55,16 @@ defmodule DebaiteWeb.ChatroomLive do
 
   @impl true
   def handle_info({:new_message, message}, socket) do
-    {:noreply, update(socket, :messages, fn messages -> messages ++ [message] end)}
+    new_socket = update(socket, :messages, fn messages -> messages ++ [message] end)
+
+    # If this is a user message, clear the sending state
+    new_socket = if message.sender_type == "user" do
+      assign(new_socket, :sending_message, false)
+    else
+      new_socket
+    end
+
+    {:noreply, new_socket}
   end
 
   @impl true
@@ -183,12 +193,18 @@ defmodule DebaiteWeb.ChatroomLive do
             placeholder="Type your message..."
             class="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             autocomplete="off"
+            disabled={@sending_message}
           />
           <button
             type="submit"
-            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded font-semibold"
+            disabled={@sending_message}
+            class={"px-6 py-2 rounded font-semibold " <> if @sending_message do
+              "bg-blue-300 text-white cursor-not-allowed"
+            else
+              "bg-blue-500 hover:bg-blue-600 text-white"
+            end}
           >
-            Send
+            <%= if @sending_message, do: "Sending...", else: "Send" %>
           </button>
         </form>
       </div>
