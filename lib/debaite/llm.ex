@@ -20,6 +20,14 @@ defmodule Debaite.LLM do
   - Do not use formal salutations or sign-offs
   """
 
+  # Strips name prefixes from LLM responses (e.g., "[Alice]:", "Bob:", etc.)
+  # LLMs often mimic the [Name]: pattern they see in conversation history
+  defp strip_name_prefix(text) do
+    text
+    |> String.replace(~r/^\s*\[?[^\]]*\]?\s*:\s*/, "")
+    |> String.trim()
+  end
+
   @doc """
   Generates text using the specified model and prompt.
 
@@ -45,6 +53,7 @@ defmodule Debaite.LLM do
             response.message.content
             |> Enum.map(fn part -> part.text end)
             |> Enum.join("")
+            |> strip_name_prefix()
           {:ok, text}
 
         {:error, reason} = error ->
